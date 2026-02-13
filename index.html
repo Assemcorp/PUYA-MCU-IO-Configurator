@@ -41,8 +41,40 @@
     <div class="max-w-6xl mx-auto">
         <header class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-bold text-green-500">PY32F002B Pin Configurator</h1>
-                <p class="text-gray-400">TSSOP20 Package - 32-bit ARM Cortex-M0+ [cite: 4, 51]</p>
+                <h1 class="text-3xl font-bold text-green-500">PUYA MCU Pin Configurator</h1>
+                <div class="mt-2">
+                    <label for="mcu-select" class="block mb-1 text-sm font-medium text-gray-400">Select MCU:</label>
+                    <select id="mcu-select"
+                        class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5">
+                        <option value="PY32F002BF15P6">PY32F002BF15P6 - TSSOP20</option>
+                        <option value="PY32F030K28T6">PY32F030K28T6 - LQFP32</option>
+                        <option value="PY32F030L14D6">PY32F030L14D6 - DFN8</option>
+                        <option value="PY32F030F26P6">PY32F030F26P6 - TSSOP20</option>
+                        <option value="PY32F040R1BT6">PY32F040R1BT6 - LQFP64</option>
+                        <option value="PY32F040C1BT6">PY32F040C1BT6 - LQFP48</option>
+                        <option value="PY32F040K1BU6">PY32F040K1BU6 - QFN32</option>
+                        <option value="PY32F040C1BT7">PY32F040C1BT7 - LQFP48</option>
+                        <option value="PY32F071R1BT6">PY32F071R1BT6 - LQFP64</option>
+                        <option value="PY32F071R1BU6">PY32F071R1BU6 - QFN64</option>
+                        <option value="PY32F071C1BT6">PY32F071C1BT6 - LQFP48</option>
+                        <option value="PY32F071C1BU6">PY32F071C1BU6 - QFN48</option>
+                        <option value="PY32F071K18U6">PY32F071K18U6 - QFN32</option>
+                        <option value="PY32F071C1BT7">PY32F071C1BT7 - LQFP48</option>
+                        <option value="PY32F072R1BT6">PY32F072R1BT6 - LQFP64</option>
+                        <option value="PY32F072C1BT6">PY32F072C1BT6 - LQFP48</option>
+                        <option value="PY32F072C1BU6">PY32F072C1BU6 - QFN48</option>
+                        <option value="PY32F072K1BU6">PY32F072K1BU6 - QFN32</option>
+                        <option value="PY32F403V1DT6">PY32F403V1DT6 - LQFP100</option>
+                        <option value="PY32F403R2DT6">PY32F403R2DT6 - LQFP64</option>
+                        <option value="PY32F403C1BT6">PY32F403C1BT6 - LQFP48</option>
+                        <option value="PY32F403C1CU6">PY32F403C1CU6 - QFN48</option>
+                        <option value="PY32F403K1BU6">PY32F403K1BU6 - QFN32</option>
+                        <option value="PY32L020F15U6">PY32L020F15U6 - QFN20</option>
+                        <option value="PY32L020L15D6">PY32L020L15D6 - DFN8</option>
+                        <option value="PY32L020F15P7">PY32L020F15P7 - TSSOP20</option>
+                        <option value="PY32T020G15P7">PY32T020G15P7 - TSSOP28</option>
+                    </select>
+                </div>
             </div>
             <div class="flex gap-4 items-center">
                 <a href="https://www.assemcorp.com/en" target="_blank" class="hover:opacity-80 transition-opacity">
