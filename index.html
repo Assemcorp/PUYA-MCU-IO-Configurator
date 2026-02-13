@@ -101,7 +101,7 @@
 
             <div class="space-y-6">
                 <div id="config-panel" class="bg-gray-800 p-6 rounded-xl border border-gray-700 hidden">
-                    <h2 id="selected-pin-name" class="text-2xl font-bold text-green-400 mb-4 font-mono">Pin Seçiniz</h2>
+                    <h2 id="selected-pin-name" class="text-2xl font-bold text-green-400 mb-4 font-mono">Select Pin</h2>
 
                     <div class="space-y-4">
                         <div>
@@ -123,6 +123,13 @@
                             </select>
                         </div>
 
+                        <div class="mt-4">
+                            <button id="create-btn"
+                                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                                Create Code
+                            </button>
+                        </div>
+
                         <div class="p-4 bg-gray-900 rounded-lg mt-6">
                             <h3 class="text-sm font-bold text-gray-500 mb-2 uppercase tracking-widest">Generated Code
                                 (CMSIS)</h3>
@@ -132,15 +139,15 @@
                 </div>
 
                 <div id="welcome-msg" class="text-center p-12 border-2 border-dashed border-gray-700 rounded-xl">
-                    <p class="text-gray-500 text-lg">Konfigüre etmek için bir pine tıklayın.</p>
+                    <p class="text-gray-500 text-lg">Click a pin to configure.</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Dokümandan alınan pin verileri [cite: 682, 727, 731]
-        const pinData = {
+        // Dokümandan alınan pin verileri (PY32F002B) [cite: 682, 727, 731]
+        const py32f002b_data = {
             1: { name: "PA5", functions: ["GPIO", "TIM1_CH1", "TIM14_CH1", "USART_CK", "ADC_IN3"] },
             2: { name: "PA6", functions: ["GPIO", "SPI_NSS", "USART_TX", "EVENTOUT", "ADC_IN3"] },
             3: { name: "PA7", functions: ["GPIO", "SPI_MOSI", "USART_RX", "TIM1_CH4", "ADC_IN4"] },
@@ -163,64 +170,257 @@
             20: { name: "PA4", functions: ["GPIO", "USART_RX", "TIM1_CH3", "ADC_IN2"] }
         };
 
-        function initPins() {
-            const leftG = document.getElementById('pins-left');
-            const rightG = document.getElementById('pins-right');
+        // Current active pin data
+        let currentPinData = {};
 
-            for (let i = 1; i <= 10; i++) {
-                createPin(i, 45, 50 + (i - 1) * 30, leftG, "left");
+        // MCU Package Definitions
+        const mcuDefinitions = {
+            "PY32F002BF15P6": { package: "TSSOP20", pins: 20, data: py32f002b_data },
+            "PY32F030K28T6": { package: "LQFP32", pins: 32 },
+            "PY32F030L14D6": { package: "DFN8", pins: 8 },
+            "PY32F030F26P6": { package: "TSSOP20", pins: 20 },
+            "PY32F040R1BT6": { package: "LQFP64", pins: 64 },
+            "PY32F040C1BT6": { package: "LQFP48", pins: 48 },
+            "PY32F040K1BU6": { package: "QFN32", pins: 32 },
+            "PY32F040C1BT7": { package: "LQFP48", pins: 48 },
+            "PY32F071R1BT6": { package: "LQFP64", pins: 64 },
+            "PY32F071R1BU6": { package: "QFN64", pins: 64 },
+            "PY32F071C1BT6": { package: "LQFP48", pins: 48 },
+            "PY32F071C1BU6": { package: "QFN48", pins: 48 },
+            "PY32F071K18U6": { package: "QFN32", pins: 32 },
+            "PY32F071C1BT7": { package: "LQFP48", pins: 48 },
+            "PY32F072R1BT6": { package: "LQFP64", pins: 64 },
+            "PY32F072C1BT6": { package: "LQFP48", pins: 48 },
+            "PY32F072C1BU6": { package: "QFN48", pins: 48 },
+            "PY32F072K1BU6": { package: "QFN32", pins: 32 },
+            "PY32F403V1DT6": { package: "LQFP100", pins: 100 },
+            "PY32F403R2DT6": { package: "LQFP64", pins: 64 },
+            "PY32F403C1BT6": { package: "LQFP48", pins: 48 },
+            "PY32F403C1CU6": { package: "QFN48", pins: 48 },
+            "PY32F403K1BU6": { package: "QFN32", pins: 32 },
+            "PY32L020F15U6": { package: "QFN20", pins: 20 },
+            "PY32L020L15D6": { package: "DFN8", pins: 8 },
+            "PY32L020F15P7": { package: "TSSOP20", pins: 20 },
+            "PY32T020G15P7": { package: "TSSOP28", pins: 28 }
+        };
+
+        const svgContainer = document.querySelector('svg');
+        const mcuSelect = document.getElementById('mcu-select');
+
+        mcuSelect.addEventListener('change', (e) => {
+            const mcuCode = e.target.value;
+            loadMCU(mcuCode);
+        });
+
+        function loadMCU(mcuCode) {
+            const def = mcuDefinitions[mcuCode] || { package: "Unknown", pins: 0 };
+
+            // Generate generic data if not available
+            if (def.data) {
+                currentPinData = def.data;
+            } else {
+                currentPinData = {};
+                for (let i = 1; i <= def.pins; i++) {
+                    currentPinData[i] = { name: `Pin ${i}`, functions: ["GPIO", "Unknown"], type: "signal" };
+                }
             }
-            for (let i = 20; i >= 11; i--) {
-                createPin(i, 225, 50 + (20 - i) * 30, rightG, "right");
+
+            // Update Labels
+            document.querySelector('#welcome-msg p').textContent = `${mcuCode} (${def.package}) Selected. Click a pin to configure.`;
+            document.querySelector('text[font-weight="bold"]').textContent = mcuCode;
+
+            // Clear SVG
+            svgContainer.innerHTML = ''; // Clear all
+
+            // Draw Package
+            if (def.package.startsWith("TSSOP") || def.package.startsWith("DFN")) {
+                drawDualInlinePackage(def.pins, def.package);
+            } else if (def.package.startsWith("LQFP") || def.package.startsWith("QFN")) {
+                drawQuadPackage(def.pins, def.package);
+            } else {
+                drawGenericPackage(def.package);
             }
         }
 
-        function createPin(id, x, y, parent, side) {
-            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            rect.setAttribute("x", x);
-            rect.setAttribute("y", y);
-            rect.setAttribute("width", 30);
-            rect.setAttribute("height", 15);
-            rect.setAttribute("class", "pin " + (pinData[id].type === 'power' ? 'fill-red-900' : 'fill-gray-600'));
-            rect.setAttribute("id", "pin-rect-" + id);
+        function createSvgElement(tag, attrs) {
+            const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+            for (let k in attrs) el.setAttribute(k, attrs[k]);
+            return el;
+        }
+
+        function drawDualInlinePackage(pinCount, pkgName) {
+            const pinsPerSide = pinCount / 2;
+            const pinPitch = 25;
+            const bodyWidth = 120;
+            const bodyHeight = (pinsPerSide * pinPitch) + 40;
+            const startY = 50;
+            const centerX = 150; // SVG viewBox 300 width
+
+            // Body
+            svgContainer.appendChild(createSvgElement("rect", {
+                x: centerX - (bodyWidth / 2), y: startY, width: bodyWidth, height: bodyHeight, class: "mcu-body"
+            }));
+
+            // Pin 1 Indicator
+            svgContainer.appendChild(createSvgElement("circle", {
+                cx: centerX - (bodyWidth / 2) + 15, cy: startY + 15, r: 5, fill: "#555"
+            }));
+
+            // Label
+            svgContainer.appendChild(createSvgElement("text", {
+                x: centerX, y: startY + (bodyHeight / 2), "text-anchor": "middle", fill: "#666", "font-size": "14", "font-weight": "bold"
+            })).textContent = pkgName;
+
+            const group = createSvgElement("g", {});
+            svgContainer.appendChild(group);
+
+            for (let i = 1; i <= pinsPerSide; i++) {
+                // Left side
+                createPin(i, centerX - (bodyWidth / 2) - 30, startY + 20 + (i - 1) * pinPitch, 30, 15, group, "left");
+                // Right side (counting down)
+                const rightPinId = pinCount - i + 1;
+                createPin(rightPinId, centerX + (bodyWidth / 2), startY + 20 + (i - 1) * pinPitch, 30, 15, group, "right");
+            }
+        }
+
+        function drawQuadPackage(pinCount, pkgName) {
+            const pinsPerSide = pinCount / 4;
+            const pinPitch = 20; // Tighter pitch for quad
+            const bodySize = (pinsPerSide * pinPitch) + 60;
+            const startX = (300 - bodySize) / 2;
+            const startY = 50;
+            const centerX = 150;
+            const centerY = startY + (bodySize / 2);
+
+            // Body
+            svgContainer.appendChild(createSvgElement("rect", {
+                x: startX, y: startY, width: bodySize, height: bodySize, class: "mcu-body", rx: 10
+            }));
+
+            // Pin 1 Indicator (Top-Left corner usually)
+            svgContainer.appendChild(createSvgElement("circle", {
+                cx: startX + 15, cy: startY + 15, r: 5, fill: "#555"
+            }));
+
+            // Label
+            svgContainer.appendChild(createSvgElement("text", {
+                x: centerX, y: centerY, "text-anchor": "middle", fill: "#666", "font-size": "14", "font-weight": "bold"
+            })).textContent = pkgName;
+
+            const group = createSvgElement("g", {});
+            svgContainer.appendChild(group);
+
+            // Pins mapping logic for Quad Flat Package (counter-clockwise starting from top-left logic usually, but standard is 1 at Top-Left or Left-Top)
+            // Standard QFP pinout: Pin 1 at top-left corner, going CCW? Or Pin 1 at left-top?
+            // Usually Pin 1 is at the top-left corner of the package, or left side top.
+            // Let's assume standard Counter-Clockwise numbering starting from Left Side -> Bottom -> Right -> Top (or similar)
+            // BUT for simplicity in visualization:
+            // Side 1 (Left): 1 to N
+            // Side 2 (Bottom): N+1 to 2N
+            // Side 3 (Right): 2N+1 to 3N
+            // Side 4 (Top): 3N+1 to 4N
+
+            // Adjusting to standard visual representation:
+            // Pins 1..N on Left (Top to Bottom)
+            // Pins N+1..2N on Bottom (Left to Right)
+            // Pins 2N+1..3N on Right (Bottom to Top)
+            // Pins 3N+1..4N on Top (Right to Left)
+
+            let pinId = 1;
+
+            // Left Side
+            for (let i = 0; i < pinsPerSide; i++) {
+                createPin(pinId++, startX - 30, startY + 30 + i * pinPitch, 30, 10, group, "left");
+            }
+            // Bottom Side
+            for (let i = 0; i < pinsPerSide; i++) {
+                createPin(pinId++, startX + 30 + i * pinPitch, startY + bodySize, 10, 30, group, "bottom");
+            }
+            // Right Side
+            for (let i = 0; i < pinsPerSide; i++) {
+                createPin(pinId++, startX + bodySize, startY + bodySize - 30 - i * pinPitch, 30, 10, group, "right"); // Bottom to Top
+            }
+            // Top Side
+            for (let i = 0; i < pinsPerSide; i++) {
+                createPin(pinId++, startX + bodySize - 30 - i * pinPitch, startY - 30, 10, 30, group, "top"); // Right to Left
+            }
+        }
+
+        function createPin(id, x, y, w, h, parent, side) {
+            const pData = currentPinData[id] || { type: "signal", name: `P${id}` };
+
+            const rect = createSvgElement("rect", {
+                x: x, y: y, width: w, height: h,
+                class: "pin " + (pData.type === 'power' ? 'fill-red-900' : 'fill-gray-600'),
+                id: "pin-rect-" + id
+            });
             rect.onclick = () => selectPin(id);
 
-            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            text.setAttribute("x", side === "left" ? x - 5 : x + 35);
-            text.setAttribute("y", y + 12);
-            text.setAttribute("text-anchor", side === "left" ? "end" : "start");
-            text.setAttribute("class", "pin-label");
-            text.textContent = `${id}: ${pinData[id].name}`;
+            // Text Label
+            let tx = x, ty = y;
+            let anchor = "start";
+
+            if (side === "left") { tx = x - 5; ty = y + h / 1.5; anchor = "end"; }
+            if (side === "right") { tx = x + w + 5; ty = y + h / 1.5; anchor = "start"; }
+            if (side === "bottom") { tx = x + w / 2; ty = y + h + 12; anchor = "middle"; }
+            if (side === "top") { tx = x + w / 2; ty = y - 5; anchor = "middle"; }
+
+            const text = createSvgElement("text", {
+                x: tx, y: ty, "text-anchor": anchor, class: "pin-label"
+            });
+            text.textContent = id; // Show Pin Number only to save space
 
             parent.appendChild(rect);
             parent.appendChild(text);
         }
 
+        // Variable to store current selection
+        let selectedPinId = null;
+
         function selectPin(id) {
             document.querySelectorAll('.pin').forEach(p => p.classList.remove('pin-selected'));
-            document.getElementById('pin-rect-' + id).classList.add('pin-selected');
+            const pRect = document.getElementById('pin-rect-' + id);
+            if (pRect) pRect.classList.add('pin-selected');
 
             document.getElementById('welcome-msg').classList.add('hidden');
             const panel = document.getElementById('config-panel');
             panel.classList.remove('hidden');
 
-            const pin = pinData[id];
+            const pin = currentPinData[id];
+            // Safe check if pin exists
+            if (!pin) return;
+
+            selectedPinId = id; // Store selected pin ID
             document.getElementById('selected-pin-name').textContent = `Pin ${id} - ${pin.name}`;
 
             const select = document.getElementById('func-select');
-            select.innerHTML = pin.functions.map(f => `<option value="${f}">${f}</option>`).join('');
 
-            updateCode(pin, pin.functions[0]);
+            // Clear previous code output
+            document.getElementById('code-output').textContent = "// Click 'Create Code' to generate";
 
-            select.onchange = (e) => updateCode(pin, e.target.value);
+            if (pin.functions && pin.functions.length > 0) {
+                select.innerHTML = pin.functions.map(f => `<option value="${f}">${f}</option>`).join('');
+            } else {
+                select.innerHTML = '<option>No Data</option>';
+            }
         }
 
+        // Add event listener for Create button
+        document.getElementById('create-btn').addEventListener('click', () => {
+            if (selectedPinId && currentPinData[selectedPinId]) {
+                const func = document.getElementById('func-select').value;
+                updateCode(currentPinData[selectedPinId], func);
+            }
+        });
+
         function updateCode(pin, func) {
-            const code = `// PY32F002B Configuration\n// Set ${pin.name} as ${func}\n\nvoid GPIO_Init_Pin() {\n    RCC->IOPENR |= RCC_IOPENR_GPIOAEN;\n    ${pin.name.substring(0, 2)}->MODER &= ~(GPIO_MODER_MODE_MASK);\n    // ... implementation ...\n}`;
+            const pinName = pin.name || "Px";
+            const code = `// ${mcuSelect.value} Configuration\n// Set ${pinName} as ${func}\n\nvoid GPIO_Init_Pin() {\n    // Setup code for ${pinName}\n    // Mode: ${func}\n}`;
             document.getElementById('code-output').textContent = code;
         }
 
-        initPins();
+        // Initialize with default
+        loadMCU(mcuSelect.value);
     </script>
 </body>
 
