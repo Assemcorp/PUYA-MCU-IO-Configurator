@@ -422,6 +422,17 @@
                 { id: 'parity', label: 'Parity', type: 'select', options: ['UART_PARITY_NONE', 'UART_PARITY_EVEN', 'UART_PARITY_ODD'] },
                 { id: 'hwflow', label: 'Hw Flow Ctl', type: 'select', options: ['UART_HWCONTROL_NONE', 'UART_HWCONTROL_RTS', 'UART_HWCONTROL_CTS', 'UART_HWCONTROL_RTS_CTS'] },
                 { id: 'mode', label: 'Mode', type: 'select', options: ['UART_MODE_TX_RX', 'UART_MODE_TX', 'UART_MODE_RX'] }
+            ],
+            TIM: [
+                { id: 'prescaler', label: 'Prescaler', type: 'number', options: ['0'] },
+                { id: 'period', label: 'Period', type: 'number', options: ['999'] },
+                { id: 'clockdivision', label: 'Clock Division', type: 'select', options: ['TIM_CLOCKDIVISION_DIV1', 'TIM_CLOCKDIVISION_DIV2', 'TIM_CLOCKDIVISION_DIV4'] },
+                { id: 'countermode', label: 'Counter Mode', type: 'select', options: ['TIM_COUNTERMODE_UP', 'TIM_COUNTERMODE_DOWN'] }
+            ],
+            ADC: [
+                { id: 'resolution', label: 'Resolution', type: 'select', options: ['ADC_RESOLUTION_12B', 'ADC_RESOLUTION_10B', 'ADC_RESOLUTION_8B'] },
+                { id: 'align', label: 'Data Align', type: 'select', options: ['ADC_DATAALIGN_RIGHT', 'ADC_DATAALIGN_LEFT'] },
+                { id: 'scan', label: 'Scan Conv Mode', type: 'select', options: ['ADC_SCAN_DIRECTION_FORWARD', 'ADC_SCAN_DIRECTION_BACKWARD'] }
             ]
         };
 
@@ -432,6 +443,10 @@
             let type = 'GPIO';
             if (funcName.includes('USART') || funcName.includes('UART')) {
                 type = 'UART';
+            } else if (funcName.includes('TIM')) {
+                type = 'TIM';
+            } else if (funcName.includes('ADC')) {
+                type = 'ADC';
             }
 
             const params = paramSchemas[type] || paramSchemas.GPIO;
@@ -456,8 +471,19 @@
                     select.appendChild(option);
                 });
 
-                div.appendChild(label);
-                div.appendChild(select);
+                // Allow editable input if type is number (simulated with select for now, or change to input)
+                if (p.type === 'number') {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.id = `param-${p.id}`;
+                    input.value = p.options[0];
+                    input.className = 'mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 focus:ring-green-500 text-white';
+                    div.appendChild(label);
+                    div.appendChild(input);
+                } else {
+                    div.appendChild(label);
+                    div.appendChild(select);
+                }
                 grid.appendChild(div);
             });
 
@@ -521,9 +547,76 @@
   huart1.Init.Parity = ${parity};
   huart1.Init.Mode = ${mode};
   huart1.Init.HwFlowCtl = ${hwflow};
-  HAL_UART_Init(&huart1);
+    HAL_UART_Init(&huart1);
+}
+`;
+            } else if (funcName.includes('TIM')) {
+                const prescaler = document.getElementById('param-prescaler').value;
+                const period = document.getElementById('param-period').value;
+                const clockdiv = document.getElementById('param-clockdivision').value;
+                const countermode = document.getElementById('param-countermode').value;
+
+                let instance = "TIM1";
+                if (funcName.includes("TIM14")) instance = "TIM14";
+
+                code += `void APP_TimConfig(void)
+{
+  // Timer Configuration for ${pin.name} (${funcName})
+  TIM_HandleTypeDef htim;
+  
+  /* TIM Peripheral Clock Enable */
+  __HAL_RCC_${instance}_CLK_ENABLE();
+  
+  // GPIO Configuration (AF)
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  __HAL_RCC_${portName}_CLK_ENABLE();
+  GPIO_InitStruct.Pin = ${pinName};
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF_TIM; // TODO: Adjust AF
+  HAL_GPIO_Init(${portName}, &GPIO_InitStruct);
+
+  htim.Instance = ${instance};
+  htim.Init.Prescaler = ${prescaler};
+  htim.Init.CounterMode = ${countermode};
+  htim.Init.Period = ${period};
+  htim.Init.ClockDivision = ${clockdiv};
+  htim.Init.RepetitionCounter = 0;
+  htim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  HAL_TIM_Base_Init(&htim);
 }`;
 
+            } else if (funcName.includes('ADC')) {
+                const res = document.getElementById('param-resolution').value;
+                const align = document.getElementById('param-align').value;
+                const scan = document.getElementById('param-scan').value;
+
+                code += `void APP_AdcConfig(void)
+{
+  // ADC Configuration for ${pin.name} (${funcName})
+  ADC_HandleTypeDef hadc;
+  
+  /* ADC Peripheral Clock Enable */
+  __HAL_RCC_ADC_CLK_ENABLE();
+  
+  // GPIO Configuration (Analog)
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  __HAL_RCC_${portName}_CLK_ENABLE();
+  GPIO_InitStruct.Pin = ${pinName};
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(${portName}, &GPIO_InitStruct);
+
+  hadc.Instance = ADC1;
+  hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV1;
+  hadc.Init.Resolution = ${res};
+  hadc.Init.DataAlign = ${align};
+  hadc.Init.ScanConvMode = ${scan};
+  hadc.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc.Init.LowPowerAutoWait = ENABLE;
+  HAL_ADC_Init(&hadc);
+}`;
             } else {
                 // Default GPIO Logic
                 const mode = document.getElementById('param-mode') ? document.getElementById('param-mode').value : 'GPIO_MODE_INPUT';
