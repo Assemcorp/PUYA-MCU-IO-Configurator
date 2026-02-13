@@ -516,34 +516,39 @@
         });
 
         function updateCode(pin) {
-            const funcSelect = document.getElementById('func-select');
-            const funcName = funcSelect ? funcSelect.value : "GPIO";
+            try {
+                const funcSelect = document.getElementById('func-select');
+                const funcName = funcSelect ? funcSelect.value : "GPIO";
 
-            // Extract Port/Pin
-            let portName = "GPIOA";
-            let pinName = "GPIO_PIN_0";
-            const match = pin.name.match(/P([A-F])(\d+)/);
-            if (match) {
-                portName = `GPIO${match[1]}`;
-                pinName = `GPIO_PIN_${match[2]}`;
-            }
+                // Extract Port/Pin
+                let portName = "GPIOA";
+                let pinName = "GPIO_PIN_0";
 
-            let code = ``;
+                // Handle special names like VCC, VSS, NRST slightly gracefully or default to GPIOA_0
+                if (pin.name && pin.name.match) {
+                    const match = pin.name.match(/P([A-F])(\d+)/);
+                    if (match) {
+                        portName = `GPIO${match[1]}`;
+                        pinName = `GPIO_PIN_${match[2]}`;
+                    }
+                }
 
-            if (funcName.includes('USART') || funcName.includes('UART')) {
-                // UART Logic
-                const baud = document.getElementById('param-baud').value;
-                const wordlen = document.getElementById('param-wordlen').value;
-                const stopbits = document.getElementById('param-stopbits').value;
-                const parity = document.getElementById('param-parity').value;
-                const hwflow = document.getElementById('param-hwflow').value;
-                const mode = document.getElementById('param-mode').value;
+                let code = ``;
 
-                // Infer Instance
-                let instance = "USART1"; // Default
-                if (funcName.includes("USART2")) instance = "USART2";
+                if (funcName.includes('USART') || funcName.includes('UART')) {
+                    // UART Logic
+                    const baud = document.getElementById('param-baud')?.value || "9600";
+                    const wordlen = document.getElementById('param-wordlen')?.value || "UART_WORDLENGTH_8B";
+                    const stopbits = document.getElementById('param-stopbits')?.value || "UART_STOPBITS_1";
+                    const parity = document.getElementById('param-parity')?.value || "UART_PARITY_NONE";
+                    const hwflow = document.getElementById('param-hwflow')?.value || "UART_HWCONTROL_NONE";
+                    const mode = document.getElementById('param-mode')?.value || "UART_MODE_TX_RX";
 
-                code += `void APP_UartConfig(void)
+                    // Infer Instance
+                    let instance = "USART1"; // Default
+                    if (funcName.includes("USART2")) instance = "USART2";
+
+                    code += `void APP_UartConfig(void)
 {
   // UART Configuration for ${pin.name} (${funcName})
   // GPIO Configuration for UART Alternate Function
@@ -565,19 +570,19 @@
   huart1.Init.Parity = ${parity};
   huart1.Init.Mode = ${mode};
   huart1.Init.HwFlowCtl = ${hwflow};
-    HAL_UART_Init(&huart1);
+  HAL_UART_Init(&huart1);
 }
 `;
-            } else if (funcName.includes('TIM')) {
-                const prescaler = document.getElementById('param-prescaler').value;
-                const period = document.getElementById('param-period').value;
-                const clockdiv = document.getElementById('param-clockdivision').value;
-                const countermode = document.getElementById('param-countermode').value;
+                } else if (funcName.includes('TIM')) {
+                    const prescaler = document.getElementById('param-prescaler')?.value || "0";
+                    const period = document.getElementById('param-period')?.value || "999";
+                    const clockdiv = document.getElementById('param-clockdivision')?.value || "TIM_CLOCKDIVISION_DIV1";
+                    const countermode = document.getElementById('param-countermode')?.value || "TIM_COUNTERMODE_UP";
 
-                let instance = "TIM1";
-                if (funcName.includes("TIM14")) instance = "TIM14";
+                    let instance = "TIM1";
+                    if (funcName.includes("TIM14")) instance = "TIM14";
 
-                code += `void APP_TimConfig(void)
+                    code += `void APP_TimConfig(void)
 {
   // Timer Configuration for ${pin.name} (${funcName})
   TIM_HandleTypeDef htim;
@@ -605,12 +610,12 @@
   HAL_TIM_Base_Init(&htim);
 }`;
 
-            } else if (funcName.includes('ADC')) {
-                const res = document.getElementById('param-resolution').value;
-                const align = document.getElementById('param-align').value;
-                const scan = document.getElementById('param-scan').value;
+                } else if (funcName.includes('ADC')) {
+                    const res = document.getElementById('param-resolution')?.value || "ADC_RESOLUTION_12B";
+                    const align = document.getElementById('param-align')?.value || "ADC_DATAALIGN_RIGHT";
+                    const scan = document.getElementById('param-scan')?.value || "ADC_SCAN_DIRECTION_FORWARD";
 
-                code += `void APP_AdcConfig(void)
+                    code += `void APP_AdcConfig(void)
 {
   // ADC Configuration for ${pin.name} (${funcName})
   ADC_HandleTypeDef hadc;
@@ -635,13 +640,13 @@
   hadc.Init.LowPowerAutoWait = ENABLE;
   HAL_ADC_Init(&hadc);
 }`;
-            } else {
-                // Default GPIO Logic
-                const mode = document.getElementById('param-mode') ? document.getElementById('param-mode').value : 'GPIO_MODE_INPUT';
-                const pull = document.getElementById('param-pull') ? document.getElementById('param-pull').value : 'GPIO_NOPULL';
-                const speed = document.getElementById('param-speed') ? document.getElementById('param-speed').value : 'GPIO_SPEED_FREQ_LOW';
+                } else {
+                    // Default GPIO Logic
+                    const mode = document.getElementById('param-mode')?.value || 'GPIO_MODE_INPUT';
+                    const pull = document.getElementById('param-pull')?.value || 'GPIO_NOPULL';
+                    const speed = document.getElementById('param-speed')?.value || 'GPIO_SPEED_FREQ_LOW';
 
-                code += `void APP_GpioConfig(void)
+                    code += `void APP_GpioConfig(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
@@ -655,11 +660,18 @@
   GPIO_InitStruct.Speed = ${speed};
   HAL_GPIO_Init(${portName}, &GPIO_InitStruct);
 }`;
-            }
+                }
 
-            const codeEl = document.getElementById('code-content');
-            codeEl.textContent = code;
-            Prism.highlightElement(codeEl);
+                const codeEl = document.getElementById('code-content');
+                codeEl.textContent = code;
+
+                if (window.Prism) {
+                    Prism.highlightElement(codeEl);
+                }
+            } catch (err) {
+                console.error("Code generation error:", err);
+                alert("Error generating code: " + err.message);
+            }
         }
 
         function copyCode() {
