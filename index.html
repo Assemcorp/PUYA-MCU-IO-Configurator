@@ -83,7 +83,7 @@
                 </div>
             </div>
             <div class="flex flex-col items-end">
-                <span class="text-gray-500 text-xs font-mono mb-1">v1.0.3</span>
+                <span class="text-gray-500 text-xs font-mono mb-1">v1.0.4</span>
                 <div class="flex gap-4 items-center">
                     <a href="https://www.assemcorp.com/en" target="_blank" class="hover:opacity-80 transition-opacity">
                         <img src="assemcorp.png" alt="Assemcorp" class="h-12 bg-white rounded p-1">
@@ -414,7 +414,17 @@
             const funcSelect = document.getElementById('func-select');
 
             // Clear previous code output
-            document.getElementById('code-output').textContent = "// Click 'Create Code' to generate";
+            const codeOutput = document.getElementById('code-output');
+            const codeContent = document.getElementById('code-content');
+
+            if (codeContent) {
+                codeContent.textContent = "// Click 'Create Code' to generate";
+                if (window.Prism) Prism.highlightElement(codeContent);
+            } else {
+                // Restore structure if lost
+                codeOutput.innerHTML = '<code id="code-content" class="language-c">// Click \'Create Code\' to generate</code>';
+                if (window.Prism) Prism.highlightElement(codeOutput.querySelector('code'));
+            }
 
             if (pin.functions && pin.functions.length > 0) {
                 funcSelect.innerHTML = pin.functions.map(f => `<option value="${f}">${f}</option>`).join('');
