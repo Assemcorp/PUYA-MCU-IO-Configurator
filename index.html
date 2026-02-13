@@ -426,14 +426,34 @@
                 if (window.Prism) Prism.highlightElement(codeOutput.querySelector('code'));
             }
 
-            if (pin.functions && pin.functions.length > 0) {
-                funcSelect.innerHTML = pin.functions.map(f => `<option value="${f}">${f}</option>`).join('');
-                // Trigger change to render params
-                renderConfigParams(pin.functions[0]);
-                funcSelect.onchange = (e) => renderConfigParams(e.target.value);
+            const createBtn = document.getElementById('create-btn');
+            const dynamicParams = document.getElementById('dynamic-params');
+
+            if (pin.type === 'power') {
+                funcSelect.innerHTML = `<option value="${pin.functions[0]}">${pin.functions[0]}</option>`;
+                funcSelect.disabled = true;
+                dynamicParams.innerHTML = ''; // Clear params
+                createBtn.disabled = true;
+                createBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                if (codeContent) {
+                    codeContent.textContent = "// Power Pin - No Configuration Available";
+                    if (window.Prism) Prism.highlightElement(codeContent);
+                }
             } else {
-                funcSelect.innerHTML = '<option value="Unknown">No Data</option>';
-                renderConfigParams("Unknown");
+                funcSelect.disabled = false;
+                createBtn.disabled = false;
+                createBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                if (pin.functions && pin.functions.length > 0) {
+                    funcSelect.innerHTML = pin.functions.map(f => `<option value="${f}">${f}</option>`).join('');
+                    // Trigger change to render params
+                    renderConfigParams(pin.functions[0]);
+                    funcSelect.onchange = (e) => renderConfigParams(e.target.value);
+                } else {
+                    funcSelect.innerHTML = '<option value="Unknown">No Data</option>';
+                    renderConfigParams("Unknown");
+                }
             }
         }
 
