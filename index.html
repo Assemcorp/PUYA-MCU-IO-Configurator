@@ -1,24 +1,57 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PY32F002B Pin Configurator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .mcu-body { background: #333; border-radius: 4px; position: relative; }
-        .pin { cursor: pointer; transition: all 0.2s; }
-        .pin:hover { fill: #4ade80 ! final; }
-        .pin-selected { fill: #22c55e !important; stroke: white; stroke-width: 1px; }
-        .pin-label { font-size: 10px; fill: white; pointer-events: none; }
+        .mcu-body {
+            background: #333;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .pin {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pin:hover {
+            fill: #4ade80 !important;
+        }
+
+        .pin-selected {
+            fill: #22c55e !important;
+            stroke: white;
+            stroke-width: 1px;
+        }
+
+        .pin-label {
+            font-size: 10px;
+            fill: white;
+            pointer-events: none;
+        }
     </style>
 </head>
+
 <body class="bg-gray-900 text-gray-100 p-8">
 
     <div class="max-w-6xl mx-auto">
-        <header class="mb-8 border-b border-gray-700 pb-4">
-            <h1 class="text-3xl font-bold text-green-500">PY32F002B Pin Configurator</h1>
-            <p class="text-gray-400">TSSOP20 Package - 32-bit ARM Cortex-M0+ [cite: 4, 51]</p>
+        <header class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-green-500">PY32F002B Pin Configurator</h1>
+                <p class="text-gray-400">TSSOP20 Package - 32-bit ARM Cortex-M0+ [cite: 4, 51]</p>
+            </div>
+            <div class="flex gap-4 items-center">
+                <a href="https://www.assemcorp.com/en" target="_blank" class="hover:opacity-80 transition-opacity">
+                    <img src="assemcorp.png" alt="Assemcorp" class="h-12 bg-white rounded p-1">
+                </a>
+                <a href="https://www.puyasemi.com/en/" target="_blank" class="hover:opacity-80 transition-opacity">
+                    <img src="puya.png" alt="Puya" class="h-12 bg-white rounded p-1">
+                </a>
+            </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -26,7 +59,8 @@
                 <h2 class="mb-6 text-xl font-semibold">Chip View</h2>
                 <svg width="400" height="500" viewBox="0 0 300 400">
                     <rect x="75" y="50" width="150" height="300" class="mcu-body" />
-                    <circle cx="90" cy="65" r="5" fill="#555" /> <text x="150" y="200" text-anchor="middle" fill="#666" font-size="14" font-weight="bold">PY32F002B</text>
+                    <circle cx="90" cy="65" r="5" fill="#555" /> <text x="150" y="200" text-anchor="middle" fill="#666"
+                        font-size="14" font-weight="bold">PY32F002B</text>
 
                     <g id="pins-left"></g>
                     <g id="pins-right"></g>
@@ -36,14 +70,15 @@
             <div class="space-y-6">
                 <div id="config-panel" class="bg-gray-800 p-6 rounded-xl border border-gray-700 hidden">
                     <h2 id="selected-pin-name" class="text-2xl font-bold text-green-400 mb-4 font-mono">Pin Seçiniz</h2>
-                    
+
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-400">Function</label>
-                            <select id="func-select" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 focus:ring-green-500">
-                                </select>
+                            <select id="func-select"
+                                class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 focus:ring-green-500">
+                            </select>
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-medium text-gray-400">I/O Mode</label>
                             <select class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
@@ -57,7 +92,8 @@
                         </div>
 
                         <div class="p-4 bg-gray-900 rounded-lg mt-6">
-                            <h3 class="text-sm font-bold text-gray-500 mb-2 uppercase tracking-widest">Generated Code (CMSIS)</h3>
+                            <h3 class="text-sm font-bold text-gray-500 mb-2 uppercase tracking-widest">Generated Code
+                                (CMSIS)</h3>
                             <pre id="code-output" class="text-green-300 font-mono text-sm leading-relaxed"></pre>
                         </div>
                     </div>
@@ -143,16 +179,17 @@
             select.innerHTML = pin.functions.map(f => `<option value="${f}">${f}</option>`).join('');
 
             updateCode(pin, pin.functions[0]);
-            
+
             select.onchange = (e) => updateCode(pin, e.target.value);
         }
 
         function updateCode(pin, func) {
-            const code = `// PY32F002B Configuration\n// Set ${pin.name} as ${func}\n\nvoid GPIO_Init_Pin() {\n    RCC->IOPENR |= RCC_IOPENR_GPIOAEN;\n    ${pin.name.substring(0,2)}->MODER &= ~(GPIO_MODER_MODE_MASK);\n    // ... implementation ...\n}`;
+            const code = `// PY32F002B Configuration\n// Set ${pin.name} as ${func}\n\nvoid GPIO_Init_Pin() {\n    RCC->IOPENR |= RCC_IOPENR_GPIOAEN;\n    ${pin.name.substring(0, 2)}->MODER &= ~(GPIO_MODER_MODE_MASK);\n    // ... implementation ...\n}`;
             document.getElementById('code-output').textContent = code;
         }
 
         initPins();
     </script>
 </body>
+
 </html>
